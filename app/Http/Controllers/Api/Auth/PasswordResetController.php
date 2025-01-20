@@ -11,6 +11,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PasswordResetController extends Controller
 {
@@ -40,16 +41,39 @@ class PasswordResetController extends Controller
         //     return response()->json(['message' => __('passwords.sent')]);
         // }
 
-        return $status === Password::RESET_LINK_SENT
-            ? response()->json(['message' => __($status)])
-            : response()->json([
-                'status' => 'failed',
-                'message' => __($status)
-            ], 422);
+        // return $status === Password::RESET_LINK_SENT
+        //     ? response()->json(['message' => __($status)])
+        //     : response()->json([
+        //         'status' => 'failed',
+        //         'message' => __($status)
+        //     ], 422);
+
+        if ($status == Password::RESET_LINK_SENT) {
+            return response()->json(['message' => __($status)], 200);
+        }
+
+        throw ValidationException::withMessages([
+            'email' => [__($status)],
+        ]);
     }
 
     public function passwordReset(PasswordResetRequest $request)
     {
-        dd($request->all());
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => bcrypt($password),
+                ])->save();
+            }
+        );
+
+        if ($status == Password::PASSWORD_RESET) {
+            return response()->json(['message' => __($status)], 200);
+        }
+
+        throw ValidationException::withMessages([
+            'email' => [__($status)],
+        ]);
     }
 }
