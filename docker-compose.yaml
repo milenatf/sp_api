@@ -1,0 +1,44 @@
+services:
+  # image project
+  sim_para_app:
+    build:
+      args:
+        user: milena
+        uid: 1000
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - sim_para_network
+
+  # nginx
+  sim_para_nginx:
+    image: nginx:alpine
+    ports:
+      - "8003:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/:/etc/nginx/conf.d/
+    networks:
+      - sim_para_network
+
+  # db mysql
+  db_sim_para:
+    image: mysql:8.0
+    platform: linux/x86_64
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-userpass}
+      MYSQL_USER: ${DB_USERNAME:-username}
+    volumes:
+      - ./.docker/mysql/dbdata:/var/lib/mysql
+    ports:
+      - "3303:3306"
+    networks:
+      - sim_para_network
+networks:
+  sim_para_network:
+    driver: bridge
